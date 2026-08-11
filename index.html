@@ -134,9 +134,9 @@
       font-size: 13px;
     }
     
-    /* 項目追加エリア */
+    /* 項目追加エリア（一時的に非表示設定） */
     .add-item-box {
-      display: flex;
+      display: none;
       gap: 8px;
       margin-bottom: 10px;
     }
@@ -174,7 +174,7 @@
       background-position: center;
       user-select: none;
       margin: 0 auto;
-      background-color: #ffffff; /* ローカル保存時の透過対策 */
+      background-color: #ffffff;
     }
     
     /* 5x5用 */
@@ -207,7 +207,6 @@
       gap: 2.0%;
     }
 
-    /* マスの中に少しだけ内側余白を作って画像を透過させる */
     .bingo-card.mode-4x4 .cell {
       margin: 2px;
     }
@@ -224,7 +223,7 @@
       justify-content: center;
       text-align: center;
       padding: 2px;
-      font-size: clamp(9px, 1.5vw, 14px); /* 変更された文字サイズ設定 */
+      font-size: clamp(9px, 1.5vw, 14px);
       font-weight: bold;
       color: #222;
       line-height: 1.25;
@@ -331,7 +330,7 @@
     <div>
       <label style="font-weight:bold; display:block; margin-bottom:5px;">マスに入れる項目（□でレ点オンオフ / 数字指定可能）:</label>
 
-      <!-- 新規項目追加 -->
+      <!-- 新規項目追加（CSSにより非表示中） -->
       <div class="add-item-box">
         <input type="text" id="new-item-text" placeholder="新しい項目を入力...（例: ★1[武器種]縛り）">
         <button type="button" onclick="addNewItem()">項目を追加</button>
@@ -344,10 +343,10 @@
       <div class="note">
         ※ <code>[武器種]</code> は「【シューター】」などのランダムな武器種になります。<br>
         ※ <code>[ガジェット]</code> は「【スピードタンク】」「【パワータンク】」「【テクニカルタンク】」のランダムになります。<br>
-        ※ <code>[欠片]</code> は「５０0０?１００００」のランダムな個数になります。<br>
+        ※ <code>[欠片]</code> は「５０００～１００００」のランダムな個数になります。<br>
         ※ <code>[ランク]</code> は「Ａ」「Ｂ」「Ｃ」のランダムになります。<br>
-        ※ <code>[デカ結晶数]</code> は「１?１０回」、<code>[討伐数]</code> は「１?２０体」、<code>[階数]</code> は「３?１５階分」のランダムになります。<br>
-        ※ <code>[秒数]</code> は「３０?５0秒」のランダムになります。<br>
+        ※ <code>[デカ結晶数]</code> は「１～１０回」、<code>[討伐数]</code> は「１～２０体」、<code>[階数]</code> は「３～１５階分」のランダムになります。<br>
+        ※ <code>[秒数]</code> は「３０～５０秒」のランダムになります。<br>
         ※ チェックを入れた項目（?）のみがビンゴカードの作成に使用されます。
       </div>
     </div>
@@ -394,8 +393,7 @@
       { id: 25, text: "★４[武器種]で敵を撃破", type: "normal", checked: true },
       { id: 26, text: "★５[武器種]で敵を撃破", type: "normal", checked: true },
       { id: 27, text: "ウデジマン[討伐数]体討伐", type: "normal", checked: true },
-      { id: 28, text: "無限食堂[階数]階分進む", type: "normal", checked: true },
-      { id: 29, text: "みんなで記念撮影", type: "normal", checked: true }
+      { id: 28, text: "無限食堂[階数]階分進む", type: "normal", checked: true }
     ];
 
     const WEAPON_TYPES = [
@@ -503,7 +501,7 @@
         return GADGET_TYPES[randomIndex];
       });
 
-      // 欠片: 5000?10000個 (全角数字)
+      // 欠片: 5000～10000個 (全角数字)
       text = text.replace(/\[欠片\]/g, () => {
         const val = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
         return toFullWidth(val);
@@ -515,25 +513,25 @@
         return ranks[Math.floor(Math.random() * ranks.length)];
       });
 
-      // デカ結晶: 1?10回 (全角数字)
+      // デカ結晶: 1～10回 (全角数字)
       text = text.replace(/\[デカ結晶数\]/g, () => {
         const val = Math.floor(Math.random() * 10) + 1;
         return toFullWidth(val);
       });
 
-      // 討伐数: 1?20体 (全角数字)
+      // 討伐数: 1～20体 (全角数字)
       text = text.replace(/\[討伐数\]/g, () => {
         const val = Math.floor(Math.random() * 20) + 1;
         return toFullWidth(val);
       });
 
-      // 無限食堂: 3?15階分 (全角数字)
+      // 無限食堂: 3～15階分 (全角数字)
       text = text.replace(/\[階数\]/g, () => {
         const val = Math.floor(Math.random() * (15 - 3 + 1)) + 3;
         return toFullWidth(val);
       });
 
-      // アンナン巣窟の秒数: 30?50秒 (全角数字)
+      // アンナン巣窟の秒数: 30～50秒 (全角数字)
       text = text.replace(/\[秒数\]/g, () => {
         const val = Math.floor(Math.random() * (50 - 30 + 1)) + 30;
         return toFullWidth(val);
@@ -626,13 +624,11 @@
       }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
 
-        // 自動ダウンロード試行
         const link = document.createElement('a');
         link.download = 'bingo_card.png';
         link.href = imgData;
         link.click();
 
-        // ローカル環境対策：保存ダイアログが弾かれた場合のために画像モーダルを表示
         const modal = document.getElementById('modal-overlay');
         const content = document.getElementById('modal-content');
         content.innerHTML = '';
@@ -667,7 +663,6 @@
         const wrapper = document.getElementById('normal-card-wrapper');
         const card = document.getElementById('bingo-card');
         
-        // カード要素を元の位置に戻す
         if (card) {
           wrapper.appendChild(card);
         }
@@ -675,7 +670,6 @@
       }
     }
 
-    // Escキーが押された時にモーダルを閉じる
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeModal(null);
