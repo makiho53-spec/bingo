@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>オリジナルビンゴカード生成</title>
+  <!-- 画面を画像化するための外部ライブラリを読み込み -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     /* 画面全体の中央揃え設定 */
     body {
@@ -70,6 +72,24 @@
 
     .btn-secondary:hover {
       background-color: #616161;
+    }
+
+    /* 拡大ボタンの追加スタイル */
+    .btn-zoom {
+      background-color: #2196F3;
+    }
+
+    .btn-zoom:hover {
+      background-color: #1976D2;
+    }
+
+    /* 画像保存ボタンの追加スタイル */
+    .btn-save {
+      background-color: #4CAF50;
+    }
+
+    .btn-save:hover {
+      background-color: #388E3C;
     }
 
     /* 項目リストの表示エリア */
@@ -188,7 +208,7 @@
 
     /* マスの中に少しだけ内側余白を作って画像を透過させる */
     .bingo-card.mode-4x4 .cell {
-      margin: 2px;     /* マスの枠線にかぶらないよう少し小さくする */
+      margin: 2px;
     }
 
     .grid-overlay {
@@ -203,15 +223,16 @@
       justify-content: center;
       text-align: center;
       padding: 2px;
-      font-size: clamp(7px, 1.6vw, 11px);
+      font-size: clamp(10px, 1.8vw, 16px);
       font-weight: bold;
       color: #222;
-      line-height: 1.15;
+      line-height: 1.25;
       word-break: break-all;
       cursor: pointer;
       position: relative;
       border-radius: 8px;
       overflow: hidden;
+      white-space: pre-line;
     }
     
     .cell.checked::after {
@@ -225,12 +246,55 @@
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-size: clamp(18px, 4vw, 28px);
+      font-size: clamp(20px, 4.5vw, 36px);
       box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
     }
 
+    /* モーダル（全画面拡大表示エリア） */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-overlay .bingo-card {
+      width: 90vh;
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+
+    /* モーダル拡大表示時の文字サイズ自動調整 */
+    .modal-overlay .cell {
+      font-size: clamp(12px, 2.5vw, 24px);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: #e91e63;
+      color: white;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 8px 18px;
+      border-radius: 50px;
+      cursor: pointer;
+      z-index: 10000;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
     @media print {
-      .controls { display: none; }
+      .controls, .modal-overlay { display: none; }
       body { background: white; padding: 0; }
       .bingo-card { max-width: 100%; }
     }
@@ -238,7 +302,7 @@
 </head>
 <body>
 
-  <h1>スプラ風 ビンゴカード生成器</h1>
+  <h1>ビンゴカード生成器</h1>
 
   <div class="controls">
     <div class="options">
@@ -255,6 +319,8 @@
       </div>
 
       <button onclick="generateBingo()">シャッフルして生成</button>
+      <button class="btn-save" onclick="downloadBingoImage()">画像として保存</button>
+      <button class="btn-zoom" onclick="openModal()">拡大表示</button>
       <button class="btn-secondary" onclick="setAllCheckboxes(true)">全チェック</button>
       <button class="btn-secondary" onclick="setAllCheckboxes(false)">全解除</button>
     </div>
@@ -264,7 +330,7 @@
 
       <!-- 新規項目追加 -->
       <div class="add-item-box">
-        <input type="text" id="new-item-text" placeholder="新しい項目を入力...（例: ガジェット縛り[ガジェット]）">
+        <input type="text" id="new-item-text" placeholder="新しい項目を入力...（例: ★1[武器種]縛り）">
         <button type="button" onclick="addNewItem()">項目を追加</button>
       </div>
 
@@ -277,15 +343,21 @@
         ※ <code>[ガジェット]</code> は「【スピードタンク】」「【パワータンク】」「【テクニカルタンク】」のランダムになります。<br>
         ※ <code>[欠片]</code> は「5000?10000」のランダムな個数になります。<br>
         ※ <code>[ランク]</code> は「A」「B」「C」のランダムになります。<br>
+        ※ <code>[デカ結晶数]</code> は「1?10回」、<code>[討伐数]</code> は「1?20体」、<code>[階数]</code> は「3?15階分」のランダムになります。<br>
         ※ チェックを入れた項目（?）のみがビンゴカードの作成に使用されます。
       </div>
     </div>
   </div>
 
-  <div class="card-wrapper">
+  <div class="card-wrapper" id="normal-card-wrapper">
     <div id="bingo-card" class="bingo-card mode-5x5">
       <div id="grid-overlay" class="grid-overlay"></div>
     </div>
+  </div>
+
+  <!-- 拡大表示用モーダル -->
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+    <button class="close-btn" onclick="closeModal(event)">閉じる (Esc)</button>
   </div>
 
   <script>
@@ -300,7 +372,7 @@
       { id: 8, text: "[武器種]で１０キル", type: "normal", checked: true },
       { id: 9, text: "アンナン巣窟４０秒以内クリア", type: "normal", checked: true },
       { id: 10, text: "幻のシャケ３体討伐", type: "normal", checked: true },
-      { id: 11, text: "★1武器縛り【武器種は自由】", type: "normal", checked: true },
+      { id: 11, text: "★1武器縛り[武器種]", type: "normal", checked: true },
       { id: 12, text: "味方をナイスで応援", type: "normal", checked: true },
       { id: 13, text: "★１[武器種]で敵を撃破", type: "normal", checked: true },
       { id: 14, text: "★２[武器種]で敵を撃破", type: "normal", checked: true },
@@ -311,13 +383,13 @@
       { id: 19, text: "フルコーススピードの極味の攻略", type: "normal", checked: true },
       { id: 20, text: "フルコーステクニカルの極味の攻略", type: "normal", checked: true },
       { id: 21, text: "フルコースパワーの極味の攻略", type: "normal", checked: true },
-      { id: 22, text: "デカ結晶１回クリア", type: "normal", checked: true },
-      { id: 23, text: "キワモノシャケ１０体討伐", type: "normal", checked: true },
+      { id: 22, text: "デカ結晶[デカ結晶数]回クリア", type: "normal", checked: true },
+      { id: 23, text: "キワモノシャケ[討伐数]体討伐", type: "normal", checked: true },
       { id: 24, text: "★３[武器種]で敵を撃破", type: "normal", checked: true },
       { id: 25, text: "★４[武器種]で敵を撃破", type: "normal", checked: true },
       { id: 26, text: "★５[武器種]で敵を撃破", type: "normal", checked: true },
-      { id: 27, text: "ウデジマン６体討伐", type: "normal", checked: true },
-      { id: 28, text: "無限食堂１０回分制覇", type: "normal", checked: true }
+      { id: 27, text: "ウデジマン[討伐数]体討伐", type: "normal", checked: true },
+      { id: 28, text: "無限食堂[階数]階分進む", type: "normal", checked: true }
     ];
 
     const WEAPON_TYPES = [
@@ -406,34 +478,45 @@
       renderItemList();
     }
 
-    // 特殊タグ（[武器種] [ガジェット] [欠片] [ランク]）を置換
+    // 特殊タグをランダム数値や文字列に置換
     function parseTags(text) {
-      // [武器種] の置換
       text = text.replace(/\[武器種\]/g, () => {
         const randomIndex = Math.floor(Math.random() * WEAPON_TYPES.length);
         return WEAPON_TYPES[randomIndex];
       });
 
-      // [ガジェット] の置換
       text = text.replace(/\[ガジェット\]/g, () => {
         const randomIndex = Math.floor(Math.random() * GADGET_TYPES.length);
         return GADGET_TYPES[randomIndex];
       });
 
-      // [欠片] の置換 (5000?10000)
       text = text.replace(/\[欠片\]/g, () => {
-        const min = 5000;
-        const max = 10000;
-        const count = Math.floor(Math.random() * (max - min + 1)) + min;
-        return count;
+        return Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
       });
 
-      // [ランク] の置換 (A, B, C)
       text = text.replace(/\[ランク\]/g, () => {
         const ranks = ['A', 'B', 'C'];
-        const randomIndex = Math.floor(Math.random() * ranks.length);
-        return ranks[randomIndex];
+        return ranks[Math.floor(Math.random() * ranks.length)];
       });
+
+      // デカ結晶: 1?10回
+      text = text.replace(/\[デカ結晶数\]/g, () => {
+        return Math.floor(Math.random() * 10) + 1;
+      });
+
+      // 討伐数: 1?20体
+      text = text.replace(/\[討伐数\]/g, () => {
+        return Math.floor(Math.random() * 20) + 1;
+      });
+
+      // 無限食堂: 3?15階分
+      text = text.replace(/\[階数\]/g, () => {
+        return Math.floor(Math.random() * (15 - 3 + 1)) + 3;
+      });
+
+      // 【 の直前と 】 の直後で改行を入れる（先頭の【は除く）
+      text = text.replace(/(.)【/g, '$1\n【');
+      text = text.replace(/】(.)/g, '】\n$1');
 
       return text;
     }
@@ -454,7 +537,6 @@
         freeGroup.style.display = 'block';
       }
 
-      // チェック済みの項目のみ抽出
       const selectedItems = [];
       itemList.forEach(item => {
         if (item.checked) {
@@ -479,7 +561,6 @@
         return;
       }
 
-      // シャッフル
       const shuffled = [...selectedItems];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -496,7 +577,6 @@
         if (isFreeActive && i === 12) {
           cell.textContent = 'FREE';
           cell.style.color = '#ff4081';
-          cell.style.fontSize = 'clamp(11px, 2.5vw, 16px)';
         } else {
           cell.textContent = parseTags(shuffled[itemIdx]);
           itemIdx++;
@@ -509,6 +589,50 @@
         grid.appendChild(cell);
       }
     }
+
+    // ビンゴカードを画像として保存する関数
+    function downloadBingoImage() {
+      const card = document.getElementById('bingo-card');
+      
+      // html2canvasを実行してカード要素をCanvasに描画
+      html2canvas(card, {
+        useCORS: true, // ローカルまたは別サーバーの画像読み込み許可
+        scale: 2 // 高画質で出力
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = 'bingo_card.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }).catch(err => {
+        alert('画像の保存に失敗しました。ローカル環境の場合はブラウザのセキュリティ設定等をご確認ください。');
+        console.error(err);
+      });
+    }
+
+    // 拡大表示モーダルの表示・非表示操作
+    function openModal() {
+      const modal = document.getElementById('modal-overlay');
+      const card = document.getElementById('bingo-card');
+      modal.appendChild(card);
+      modal.classList.add('active');
+    }
+
+    function closeModal(event) {
+      if (!event || event.target.id === 'modal-overlay' || event.target.classList.contains('close-btn')) {
+        const modal = document.getElementById('modal-overlay');
+        const wrapper = document.getElementById('normal-card-wrapper');
+        const card = document.getElementById('bingo-card');
+        wrapper.appendChild(card);
+        modal.classList.remove('active');
+      }
+    }
+
+    // Escキーが押された時にモーダルを閉じる
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal(null);
+      }
+    });
 
     // 初期化
     renderItemList();
