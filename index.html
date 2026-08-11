@@ -5,38 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>オリジナルビンゴカード生成</title>
   <style>
+    /* 画面全体の中央揃え設定 */
     body {
       font-family: 'Helvetica Neue', Arial, sans-serif;
       max-width: 800px;
-      margin: 0 auto;
+      margin: 0 auto !important;
       padding: 20px;
       background-color: #f4f4f9;
       color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-sizing: border-box;
     }
+
     h1 {
       text-align: center;
       color: #e91e63;
+      width: 100%;
     }
+
     .controls {
       background: #fff;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       margin-bottom: 20px;
+      width: 100%;
+      box-sizing: border-box;
     }
+
     .options {
       display: flex;
       gap: 10px;
       align-items: center;
+      justify-content: center;
       flex-wrap: wrap;
       margin-bottom: 15px;
     }
+
     select, button {
       padding: 8px 14px;
       font-size: 14px;
       border-radius: 6px;
       border: 1px solid #ccc;
     }
+
     button {
       background-color: #ff4081;
       color: white;
@@ -45,12 +59,15 @@
       font-weight: bold;
       transition: background 0.2s;
     }
+
     button:hover {
       background-color: #f50057;
     }
+
     .btn-secondary {
       background-color: #757575;
     }
+
     .btn-secondary:hover {
       background-color: #616161;
     }
@@ -65,6 +82,7 @@
       background: #fafafa;
       margin-bottom: 10px;
     }
+
     .item-row {
       display: flex;
       align-items: center;
@@ -72,11 +90,13 @@
       margin-bottom: 6px;
       font-size: 14px;
     }
+
     .item-row input[type="checkbox"] {
       width: 18px;
       height: 18px;
       cursor: pointer;
     }
+
     .item-row input[type="text"] {
       flex: 1;
       padding: 4px 8px;
@@ -84,6 +104,7 @@
       border-radius: 4px;
       font-size: 13px;
     }
+
     .num-input {
       width: 45px;
       padding: 4px;
@@ -99,6 +120,7 @@
       gap: 8px;
       margin-bottom: 10px;
     }
+
     .add-item-box input {
       flex: 1;
       padding: 6px 10px;
@@ -110,14 +132,18 @@
       font-size: 12px;
       color: #666;
       margin-top: 5px;
+      line-height: 1.5;
     }
     
-    /* ビンゴカード表示エリア */
+    /* ビンゴカード表示エリア（中央寄せ固定） */
     .card-wrapper {
       display: flex;
       justify-content: center;
+      align-items: center;
+      width: 100%;
       margin-top: 20px;
     }
+
     .bingo-card {
       position: relative;
       width: 100%;
@@ -127,12 +153,14 @@
       background-repeat: no-repeat;
       background-position: center;
       user-select: none;
+      margin: 0 auto;
     }
     
     /* 5x5用 */
     .bingo-card.mode-5x5 {
       background-image: url('bingo1.png');
     }
+
     .bingo-card.mode-5x5 .grid-overlay {
       top: 15.2%;
       left: 12.8%;
@@ -147,6 +175,7 @@
     .bingo-card.mode-4x4 {
       background-image: url('bingo2.png');
     }
+
     .bingo-card.mode-4x4 .grid-overlay {
       top: 16.0%;
       left: 13.0%;
@@ -230,7 +259,7 @@
 
       <!-- 新規項目追加 -->
       <div class="add-item-box">
-        <input type="text" id="new-item-text" placeholder="新しい項目を入力...">
+        <input type="text" id="new-item-text" placeholder="新しい項目を入力...（例: ガジェット縛り[ガジェット]）">
         <button type="button" onclick="addNewItem()">項目を追加</button>
       </div>
 
@@ -239,7 +268,10 @@
       </div>
 
       <div class="note">
-        ※ <code>[武器種]</code> は「【シューター】」などのランダムな武器種に置き換わります。<br>
+        ※ <code>[武器種]</code> は「【シューター】」などのランダムな武器種になります。<br>
+        ※ <code>[ガジェット]</code> は「【スピードタンク】」「【パワータンク】」「【テクニカルタンク】」のランダムになります。<br>
+        ※ <code>[欠片]</code> は「5000?10000」のランダムな個数になります。<br>
+        ※ <code>[ランク]</code> は「A」「B」「C」のランダムになります。<br>
         ※ チェックを入れた項目（?）のみがビンゴカードの作成に使用されます。
       </div>
     </div>
@@ -253,37 +285,44 @@
 
   <script>
     let itemList = [
-      { id: 1, text: "★5絶品武器", count: 1, type: "weapon_count", checked: true },
-      { id: 2, text: "★5絶品武器", count: 3, type: "weapon_count", suffix: " [武器種]", checked: true },
-      { id: 3, text: "★5絶品武器", count: 2, type: "weapon_count", suffix: " [武器種]", checked: true },
-      { id: 4, text: "[武器種]で勝利", type: "normal", checked: true },
-      { id: 5, text: "[武器種]で10キル", type: "normal", checked: true },
-      { id: 6, text: "ナワバリバトルで勝利", type: "normal", checked: true },
-      { id: 7, text: "ガチマッチで10キル", type: "normal", checked: true },
-      { id: 8, text: "スペシャルを3回使う", type: "normal", checked: true },
-      { id: 9, text: "味方をナイスで応援", type: "normal", checked: true },
-      { id: 10, text: "チャージャーで撃破", type: "normal", checked: true },
-      { id: 11, text: "ウルトラショット命中", type: "normal", checked: true },
-      { id: 12, text: "裏取りに成功する", type: "normal", checked: true },
-      { id: 13, text: "イカロールを決める", type: "normal", checked: true },
-      { id: 14, text: "スーパージャンプ失敗", type: "normal", checked: true },
-      { id: 15, text: "インク切れを起こす", type: "normal", checked: true },
-      { id: 16, text: "最後の5秒で逆転", type: "normal", checked: true },
-      { id: 17, text: "金ノックアウト達成", type: "normal", checked: true },
-      { id: 18, text: "サーモンランで全滅", type: "normal", checked: true },
-      { id: 19, text: "メガホンレーザー回避", type: "normal", checked: true },
-      { id: 20, text: "エリアを確保する", type: "normal", checked: true },
-      { id: 21, text: "ヤグラを限界突破", type: "normal", checked: true },
-      { id: 22, text: "ホコをゴールに運ぶ", type: "normal", checked: true },
-      { id: 23, text: "アサリをゴールに入れる", type: "normal", checked: true },
-      { id: 24, text: "エモートで喜ぶ", type: "normal", checked: true },
-      { id: 25, text: "ウズマキクリスタル", type: "normal", checked: true }
+      { id: 1, text: "★5武器", count: 1, type: "weapon_count", suffix: "本獲得 [武器種]", checked: true },
+      { id: 2, text: "★5絶品武器", count: 2, type: "weapon_count", suffix: "本獲得 [武器種]", checked: true },
+      { id: 3, text: "★5絶品武器", count: 3, type: "weapon_count", suffix: "本獲得 [武器種]", checked: true },
+      { id: 4, text: "ガジェット縛り[ガジェット]", type: "normal", checked: true },
+      { id: 5, text: "クリスタルの欠片[欠片]個集める", type: "normal", checked: true },
+      { id: 6, text: "ミニゲームで[ランク]をとる", type: "normal", checked: true },
+      { id: 7, text: "[武器種]でステージクリア", type: "normal", checked: true },
+      { id: 8, text: "[武器種]で１０キル", type: "normal", checked: true },
+      { id: 9, text: "アンナン巣窟４０秒以内クリア", type: "normal", checked: true },
+      { id: 10, text: "幻のシャケ３体討伐", type: "normal", checked: true },
+      { id: 11, text: "★1武器縛り【武器種は自由】", type: "normal", checked: true },
+      { id: 12, text: "味方をナイスで応援", type: "normal", checked: true },
+      { id: 13, text: "★１[武器種]で敵を撃破", type: "normal", checked: true },
+      { id: 14, text: "★２[武器種]で敵を撃破", type: "normal", checked: true },
+      { id: 15, text: "イカロールで敵を落とす", type: "normal", checked: true },
+      { id: 16, text: "イカロールアタックのみで１体倒す", type: "normal", checked: true },
+      { id: 17, text: "ウズシオクリスタル１０個獲得", type: "normal", checked: true },
+      { id: 18, text: "つまみぐいダンジョン１ステージクリア", type: "normal", checked: true },
+      { id: 19, text: "フルコーススピードの極味の攻略", type: "normal", checked: true },
+      { id: 20, text: "フルコーステクニカルの極味の攻略", type: "normal", checked: true },
+      { id: 21, text: "フルコースパワーの極味の攻略", type: "normal", checked: true },
+      { id: 22, text: "デカ結晶１回クリア", type: "normal", checked: true },
+      { id: 23, text: "キワモノシャケ１０体討伐", type: "normal", checked: true },
+      { id: 24, text: "★３[武器種]で敵を撃破", type: "normal", checked: true },
+      { id: 25, text: "★４[武器種]で敵を撃破", type: "normal", checked: true },
+      { id: 26, text: "★５[武器種]で敵を撃破", type: "normal", checked: true },
+      { id: 27, text: "ウデジマン６体討伐", type: "normal", checked: true },
+      { id: 28, text: "無限食堂１０回分制覇", type: "normal", checked: true }
     ];
 
     const WEAPON_TYPES = [
       '【シューター】', '【ローラー】', '【チャージャー】', '【スロッシャー】',
       '【スピナー】', '【マニューバー】', '【シェルター】', '【ブラスター】',
       '【フデ】', '【ストリンガー】', '【ワイパー】'
+    ];
+
+    const GADGET_TYPES = [
+      '【スピードタンク】', '【パワータンク】', '【テクニカルタンク】'
     ];
 
     // 入力フォームの生成
@@ -306,7 +345,7 @@
 
         if (item.type === 'weapon_count') {
           const label1 = document.createElement('span');
-          label1.textContent = '★5絶品武器';
+          label1.textContent = item.text || '★5武器';
           
           const numInput = document.createElement('input');
           numInput.type = 'number';
@@ -319,7 +358,7 @@
           });
 
           const label2 = document.createElement('span');
-          label2.textContent = '本' + (item.suffix || '');
+          label2.textContent = (item.suffix || '');
 
           row.appendChild(label1);
           row.appendChild(numInput);
@@ -362,12 +401,36 @@
       renderItemList();
     }
 
-    // テキスト内の[武器種]をランダム置換
-    function parseWeaponType(text) {
-      return text.replace(/\[武器種\]/g, () => {
+    // 特殊タグ（[武器種] [ガジェット] [欠片] [ランク]）を置換
+    function parseTags(text) {
+      // [武器種] の置換
+      text = text.replace(/\[武器種\]/g, () => {
         const randomIndex = Math.floor(Math.random() * WEAPON_TYPES.length);
         return WEAPON_TYPES[randomIndex];
       });
+
+      // [ガジェット] の置換
+      text = text.replace(/\[ガジェット\]/g, () => {
+        const randomIndex = Math.floor(Math.random() * GADGET_TYPES.length);
+        return GADGET_TYPES[randomIndex];
+      });
+
+      // [欠片] の置換 (5000?10000)
+      text = text.replace(/\[欠片\]/g, () => {
+        const min = 5000;
+        const max = 10000;
+        const count = Math.floor(Math.random() * (max - min + 1)) + min;
+        return count;
+      });
+
+      // [ランク] の置換 (A, B, C)
+      text = text.replace(/\[ランク\]/g, () => {
+        const ranks = ['A', 'B', 'C'];
+        const randomIndex = Math.floor(Math.random() * ranks.length);
+        return ranks[randomIndex];
+      });
+
+      return text;
     }
 
     // ビンゴカードの生成
@@ -393,7 +456,7 @@
           if (item.type === 'weapon_count') {
             const num = item.count || 1;
             const suffix = item.suffix || '';
-            selectedItems.push(`★5絶品武器${num}本${suffix}`);
+            selectedItems.push(`${item.text}${num}${suffix}`);
           } else {
             if (item.text.trim().length > 0) {
               selectedItems.push(item.text.trim());
@@ -430,7 +493,7 @@
           cell.style.color = '#ff4081';
           cell.style.fontSize = 'clamp(11px, 2.5vw, 16px)';
         } else {
-          cell.textContent = parseWeaponType(shuffled[itemIdx]);
+          cell.textContent = parseTags(shuffled[itemIdx]);
           itemIdx++;
         }
 
