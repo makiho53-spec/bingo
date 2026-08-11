@@ -177,13 +177,18 @@
     }
 
     .bingo-card.mode-4x4 .grid-overlay {
-      top: 16.0%;
-      left: 13.0%;
-      width: 74.0%;
-      height: 63.5%;
+      top: 15.5%;
+      left: 12.5%;
+      width: 72.0%;
+      height: 64.0%;
       grid-template-columns: repeat(4, 1fr);
       grid-template-rows: repeat(4, 1fr);
       gap: 2.0%;
+    }
+
+    /* マスの中に少しだけ内側余白を作って画像を透過させる */
+    .bingo-card.mode-4x4 .cell {
+      margin: 2px;     /* マスの枠線にかぶらないよう少し小さくする */
     }
 
     .grid-overlay {
