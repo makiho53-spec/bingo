@@ -224,7 +224,7 @@
       justify-content: center;
       text-align: center;
       padding: 2px;
-      font-size: clamp(10px, 1.8vw, 16px);
+      font-size: clamp(9px, 1.5vw, 14px); /* 変更された文字サイズ設定 */
       font-weight: bold;
       color: #222;
       line-height: 1.25;
@@ -275,9 +275,9 @@
       object-fit: contain;
     }
 
-    /* モーダル拡大表示時の文字サイズ自動調整 */
+    /* モーダル拡大表示時も通常表示と同じ比率にする */
     .modal-overlay .cell {
-      font-size: clamp(12px, 2.5vw, 24px);
+      font-size: inherit;
     }
 
     .close-btn {
@@ -344,9 +344,10 @@
       <div class="note">
         ※ <code>[武器種]</code> は「【シューター】」などのランダムな武器種になります。<br>
         ※ <code>[ガジェット]</code> は「【スピードタンク】」「【パワータンク】」「【テクニカルタンク】」のランダムになります。<br>
-        ※ <code>[欠片]</code> は「5000?10000」のランダムな個数になります。<br>
-        ※ <code>[ランク]</code> は「A」「B」「C」のランダムになります。<br>
-        ※ <code>[デカ結晶数]</code> は「1?10回」、<code>[討伐数]</code> は「1?20体」、<code>[階数]</code> は「3?15階分」のランダムになります。<br>
+        ※ <code>[欠片]</code> は「５０0０?１００００」のランダムな個数になります。<br>
+        ※ <code>[ランク]</code> は「Ａ」「Ｂ」「Ｃ」のランダムになります。<br>
+        ※ <code>[デカ結晶数]</code> は「１?１０回」、<code>[討伐数]</code> は「１?２０体」、<code>[階数]</code> は「３?１５階分」のランダムになります。<br>
+        ※ <code>[秒数]</code> は「３０?５0秒」のランダムになります。<br>
         ※ チェックを入れた項目（?）のみがビンゴカードの作成に使用されます。
       </div>
     </div>
@@ -374,7 +375,7 @@
       { id: 6, text: "ミニゲームで[ランク]をとる", type: "normal", checked: true },
       { id: 7, text: "[武器種]でステージクリア", type: "normal", checked: true },
       { id: 8, text: "[武器種]で１０キル", type: "normal", checked: true },
-      { id: 9, text: "アンナン巣窟４０秒以内クリア", type: "normal", checked: true },
+      { id: 9, text: "アンナン巣窟[秒数]秒以内クリア", type: "normal", checked: true },
       { id: 10, text: "幻のシャケ３体討伐", type: "normal", checked: true },
       { id: 11, text: "★1武器縛り[武器種]", type: "normal", checked: true },
       { id: 12, text: "味方をナイスで応援", type: "normal", checked: true },
@@ -482,6 +483,13 @@
       renderItemList();
     }
 
+    // 半角の数字・英字を全角に変換するヘルパー関数
+    function toFullWidth(str) {
+      return String(str).replace(/[0-9a-zA-Z]/g, (s) => {
+        return String.fromCharCode(s.charCodeAt(0) + 0xFEE0);
+      });
+    }
+
     // 特殊タグをランダム数値や文字列に置換
     function parseTags(text) {
       text = text.replace(/\[武器種\]/g, () => {
@@ -494,28 +502,40 @@
         return GADGET_TYPES[randomIndex];
       });
 
+      // 欠片: 5000?10000個 (全角数字)
       text = text.replace(/\[欠片\]/g, () => {
-        return Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+        const val = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
+        return toFullWidth(val);
       });
 
+      // ランク: A, B, C (全角文字)
       text = text.replace(/\[ランク\]/g, () => {
-        const ranks = ['A', 'B', 'C'];
+        const ranks = ['Ａ', 'Ｂ', 'Ｃ'];
         return ranks[Math.floor(Math.random() * ranks.length)];
       });
 
-      // デカ結晶: 1?10回
+      // デカ結晶: 1?10回 (全角数字)
       text = text.replace(/\[デカ結晶数\]/g, () => {
-        return Math.floor(Math.random() * 10) + 1;
+        const val = Math.floor(Math.random() * 10) + 1;
+        return toFullWidth(val);
       });
 
-      // 討伐数: 1?20体
+      // 討伐数: 1?20体 (全角数字)
       text = text.replace(/\[討伐数\]/g, () => {
-        return Math.floor(Math.random() * 20) + 1;
+        const val = Math.floor(Math.random() * 20) + 1;
+        return toFullWidth(val);
       });
 
-      // 無限食堂: 3?15階分
+      // 無限食堂: 3?15階分 (全角数字)
       text = text.replace(/\[階数\]/g, () => {
-        return Math.floor(Math.random() * (15 - 3 + 1)) + 3;
+        const val = Math.floor(Math.random() * (15 - 3 + 1)) + 3;
+        return toFullWidth(val);
+      });
+
+      // アンナン巣窟の秒数: 30?50秒 (全角数字)
+      text = text.replace(/\[秒数\]/g, () => {
+        const val = Math.floor(Math.random() * (50 - 30 + 1)) + 30;
+        return toFullWidth(val);
       });
 
       // 【 の直前と 】 の直後で改行を入れる（先頭の【は除く）
@@ -545,7 +565,7 @@
       itemList.forEach(item => {
         if (item.checked) {
           if (item.type === 'weapon_count') {
-            const num = item.count || 1;
+            const num = toFullWidth(item.count || 1);
             const suffix = item.suffix || '';
             selectedItems.push(`${item.text}${num}${suffix}`);
           } else {
@@ -594,7 +614,7 @@
       }
     }
 
-    // ビンゴカードを画像化（1本化してエラー回避）
+    // ビンゴカードを画像化
     function downloadBingoImage() {
       const card = document.getElementById('bingo-card');
       
