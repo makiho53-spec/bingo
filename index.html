@@ -25,25 +25,26 @@
       text-align: center;
       color: #e91e63;
       width: 100%;
+      margin-bottom: 25px;
     }
 
     .controls {
       background: #fff;
-      padding: 20px;
+      padding: 24px;
       border-radius: 12px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
+      margin-bottom: 25px;
       width: 100%;
       box-sizing: border-box;
     }
 
     .options {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
     }
 
     select, button {
@@ -92,22 +93,46 @@
       background-color: #388E3C;
     }
 
-    /* 項目リストの表示エリア */
+    /* 注意書きトグルボタンの追加スタイル */
+    .btn-info {
+      background-color: #ff9800;
+    }
+
+    .btn-info:hover {
+      background-color: #f57c00;
+    }
+
+    /* 項目リストトグルボタンの追加スタイル */
+    .btn-toggle-list {
+      background-color: #00bcd4;
+    }
+
+    .btn-toggle-list:hover {
+      background-color: #00acc1;
+    }
+
+    /* 項目リストの表示エリア（初期状態は非表示） */
+    .item-list-wrapper {
+      display: none;
+      margin-top: 15px;
+    }
+
     .item-list-container {
       max-height: 280px;
       overflow-y: auto;
       border: 1px solid #ccc;
       border-radius: 6px;
-      padding: 10px;
+      padding: 12px;
       background: #fafafa;
-      margin-bottom: 10px;
+      margin-top: 10px;
+      margin-bottom: 15px;
     }
 
     .item-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       font-size: 14px;
     }
 
@@ -119,7 +144,7 @@
 
     .item-row input[type="text"] {
       flex: 1;
-      padding: 4px 8px;
+      padding: 6px 8px;
       border: 1px solid #ccc;
       border-radius: 4px;
       font-size: 13px;
@@ -138,7 +163,7 @@
     .add-item-box {
       display: none;
       gap: 8px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .add-item-box input {
@@ -148,11 +173,24 @@
       border-radius: 4px;
     }
 
+    /* 注意書き表示エリア（デフォルトで非表示） */
     .note {
-      font-size: 12px;
+      display: none;
+      font-size: 13px;
+      color: #555;
+      margin-top: 15px;
+      padding: 12px 15px;
+      background-color: #fff8e1;
+      border-left: 4px solid #ffb300;
+      border-radius: 4px;
+      line-height: 1.6;
+    }
+
+    .item-count-badge {
+      font-size: 13px;
       color: #666;
-      margin-top: 5px;
-      line-height: 1.5;
+      font-weight: normal;
+      margin-left: 8px;
     }
     
     /* ビンゴカード表示エリア（中央寄せ固定） */
@@ -161,7 +199,7 @@
       justify-content: center;
       align-items: center;
       width: 100%;
-      margin-top: 20px;
+      margin-top: 25px;
     }
 
     .bingo-card {
@@ -323,24 +361,34 @@
       <button onclick="generateBingo()">シャッフルして生成</button>
       <button class="btn-save" onclick="downloadBingoImage()">画像として表示/保存</button>
       <button class="btn-zoom" onclick="openModal()">拡大表示</button>
-      <button class="btn-secondary" onclick="setAllCheckboxes(true)">全チェック</button>
-      <button class="btn-secondary" onclick="setAllCheckboxes(false)">全解除</button>
+      <button class="btn-toggle-list" id="btn-toggle-items" onclick="toggleItemList()">項目リスト表示 <span id="checked-count-badge" class="item-count-badge"></span></button>
+      <button class="btn-info" onclick="toggleNote()">注意書き表示</button>
     </div>
 
     <div>
-      <label style="font-weight:bold; display:block; margin-bottom:5px;">マスに入れる項目（□でレ点オンオフ / 数字指定可能）:</label>
+      <!-- 展開可能な項目エリア -->
+      <div id="item-list-wrapper" class="item-list-wrapper">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <label style="font-weight:bold;">マスに入れる項目（□でレ点オンオフ / 数字指定可能）:</label>
+          <div>
+            <button class="btn-secondary" style="padding: 4px 8px; font-size:12px;" onclick="setAllCheckboxes(true)">全チェック</button>
+            <button class="btn-secondary" style="padding: 4px 8px; font-size:12px;" onclick="setAllCheckboxes(false)">全解除</button>
+          </div>
+        </div>
 
-      <!-- 新規項目追加（CSSにより非表示中） -->
-      <div class="add-item-box">
-        <input type="text" id="new-item-text" placeholder="新しい項目を入力...（例: ★1[武器種]縛り）">
-        <button type="button" onclick="addNewItem()">項目を追加</button>
+        <!-- 新規項目追加（CSSにより非表示中） -->
+        <div class="add-item-box">
+          <input type="text" id="new-item-text" placeholder="新しい項目を入力...（例: ★1[武器種]縛り）">
+          <button type="button" onclick="addNewItem()">項目を追加</button>
+        </div>
+
+        <div id="item-list-container" class="item-list-container">
+          <!-- JSで項目行を自動生成 -->
+        </div>
       </div>
 
-      <div id="item-list-container" class="item-list-container">
-        <!-- JSで項目行を自動生成 -->
-      </div>
-
-      <div class="note">
+      <!-- 注意書きエリア（ボタンクリックで切り替え） -->
+      <div class="note" id="note-area">
         ※ <code>[武器種]</code> は「【シューター】」などのランダムな武器種になります。<br>
         ※ <code>[ガジェット]</code> は「【スピードタンク】」「【パワータンク】」「【テクニカルタンク】」のランダムになります。<br>
         ※ <code>[欠片]</code> は「５０００～１００００」のランダムな個数になります。<br>
@@ -406,7 +454,7 @@
       '【スピードタンク】', '【パワータンク】', '【テクニカルタンク】'
     ];
 
-    // 入力フォームの生成
+    // 入力フォームの生成とバッジ更新
     function renderItemList() {
       const container = document.getElementById('item-list-container');
       container.innerHTML = '';
@@ -420,6 +468,7 @@
         checkbox.checked = item.checked;
         checkbox.addEventListener('change', (e) => {
           item.checked = e.target.checked;
+          updateCheckedBadge();
         });
 
         row.appendChild(checkbox);
@@ -457,12 +506,47 @@
 
         container.appendChild(row);
       });
+
+      updateCheckedBadge();
+    }
+
+    // 選択中件数バッジの更新
+    function updateCheckedBadge() {
+      const checkedCount = itemList.filter(i => i.checked).length;
+      const badge = document.getElementById('checked-count-badge');
+      if (badge) {
+        badge.textContent = `(${checkedCount}件)`;
+      }
     }
 
     // 全チェック / 全解除 ボタン
     function setAllCheckboxes(status) {
       itemList.forEach(item => item.checked = status);
       renderItemList();
+    }
+
+    // 項目リストの表示/非表示切り替え関数
+    function toggleItemList() {
+      const wrapper = document.getElementById('item-list-wrapper');
+      const btn = document.getElementById('btn-toggle-items');
+      
+      if (wrapper.style.display === 'block') {
+        wrapper.style.display = 'none';
+        btn.childNodes[0].nodeValue = '項目リスト表示 ';
+      } else {
+        wrapper.style.display = 'block';
+        btn.childNodes[0].nodeValue = '項目リストを隠す ';
+      }
+    }
+
+    // 注意書きの表示/非表示切り替え関数
+    function toggleNote() {
+      const note = document.getElementById('note-area');
+      if (note.style.display === 'block') {
+        note.style.display = 'none';
+      } else {
+        note.style.display = 'block';
+      }
     }
 
     // 新規項目追加
